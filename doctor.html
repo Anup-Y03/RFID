@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Doctor Dashboard</title>
+
+<link rel="stylesheet" href="shared.css"/>
+
+</head>
+
+<body>
+
+<div class="dash-header">
+
+<div class="logo">
+Doctor Dashboard
+</div>
+
+</div>
+
+<div class="dash-body">
+
+<div style="display:grid;
+grid-template-columns:350px 1fr;
+gap:20px">
+
+<!-- LEFT -->
+
+<div class="card">
+
+<h3>Waiting Queue</h3>
+
+<div id="waiting-list"></div>
+
+<button class="btn-primary"
+onclick="callNextPatient()">
+
+Call Next Patient
+
+</button>
+
+</div>
+
+<!-- RIGHT -->
+
+<div class="card">
+
+<div id="doctor-main">
+
+<h2>No Patient Selected</h2>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const API = "http://192.168.29.15:3000";
+
+let currentPatient = null;
+
+// =====================================================
+// WEBSOCKET
+// =====================================================
+
+let ws;
+
+function connectWS(){
+
+  ws = new WebSocket(
+    `ws://192.168.29.15:3000`
+  );
+
+  ws.onmessage = e => {
+
+    const data = JSON.parse(e.data);
+
+    if(data.type === "queue_update"){
+
+      renderQueue(data.queue);
+
+    }
+
+    if(data.type === "patient_enter"){
+
+      showPatient(data.patient);
+
+    }
+
+    if(data.type === "consultation_complete"){
+
+      clearDoctor();
+
+    }
+
+  };
+
+}
+
+connectWS();
+
+// =====================================================
+// LOAD QUEUE
+// =====================================================
+
+async function loadQueue(){
+
+  const r = await fetch(`${API}/api/queue`);
+
+  const queue = await r.json();
+
+  renderQueue(queue);
+
+}
+
+function renderQueue(queue){
+
+  const waiting =
+  queue.filter(
+    p => p.queue_status === "waiting"
+  );
+
+  document.getElementById(
+    "waiting-list"
+  ).innerHTML =
+
+  waiting.map(p => `
+
+    <div class="queue-item">
+
+      <div class="queue-num">
+      ${p.queue_number}
+      </div>
+
+      <div class="queue-info">
+
+        <div class="queue-name">
+        ${p.name}
+        </div>
+
+      </div>
+
+    </div>
+
+  `).join("");
+
+}
+
+// =====================================================
+// NEXT PATIENT
+// =====================================================
+
+async function callNextPatient(){
+
+  const r = await fetch(
+    `${API}/api/next-patient`,
+    {
+      method:"POST"
+    }
+  );
+
+  const patient = await r.json();
+
+  if(!r.ok){
+
+    alert(patient.error);
+
+    return;
+
+  }
+
+  showPatient(patient);
+
+}
+
+// =====================================================
+// SHOW PATIENT
+// =====================================================
+
+function showPatient(patient){
+
+  currentPatient = patient;
+
+  document.getElementById(
+    "doctor-main"
+  ).innerHTML = `
+
+    <h2>${patient.name}</h2>
+
+    <p><b>Queue:</b>
+    ${patient.queue_number}</p>
+
+    <p><b>Age:</b>
+    ${patient.age}</p>
+
+    <p><b>Gender:</b>
+    ${patient.gender}</p>
+
+    <p><b>BP:</b>
+    ${patient.blood_pressure}</p>
+
+    <p><b>Sugar:</b>
+    ${patient.diabetes_level}</p>
+
+    <br>
+
+    <input type="text"
+    id="diagnosis"
+    placeholder="Diagnosis">
+
+    <br><br>
+
+    <textarea
+    id="medicines"
+    placeholder="Medicines"></textarea>
+
+    <br><br>
+
+    <button class="btn-primary"
+    onclick="completeConsultation()">
+
+    Complete Consultation
+
+    </button>
+
+  `;
+
+}
+
+// =====================================================
+// COMPLETE
+// =====================================================
+
+async function completeConsultation(){
+
+  const payload = {
+
+    patient_id:
+    currentPatient.id,
+
+    diagnosis:
+    document.getElementById(
+      "diagnosis"
+    ).value,
+
+    medicines:
+    document.getElementById(
+      "medicines"
+    ).value,
+
+    notes:"",
+    follow_up:""
+
+  };
+
+  await fetch(
+    `${API}/api/consultation/complete`,
+    {
+
+      method:"POST",
+
+      headers:{
+        "Content-Type":"application/json"
+      },
+
+      body:JSON.stringify(payload)
+
+    }
+  );
+
+  clearDoctor();
+
+}
+
+function clearDoctor(){
+
+  document.getElementById(
+    "doctor-main"
+  ).innerHTML = `
+    <h2>No Patient Selected</h2>
+  `;
+
+  currentPatient = null;
+
+}
+
+loadQueue();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8"/>
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0"/>
+
+<title>
+Reception Dashboard
+</title>
+
+<link rel="stylesheet"
+href="shared.css"/>
+
+<style>
+
+.reception-grid{
+
+display:grid;
+
+grid-template-columns:1fr 340px;
+
+gap:20px;
+
+}
+
+.btn-register{
+
+width:100%;
+
+padding:13px;
+
+background:#2d4a2d;
+
+color:white;
+
+border:none;
+
+border-radius:8px;
+
+cursor:pointer;
+
+margin-top:20px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="dash-header">
+
+<div class="logo">
+Reception Dashboard
+</div>
+
+<a class="btn-home"
+href="index.html">
+
+Home
+
+</a>
+
+</div>
+
+<div class="dash-body">
+
+<div class="reception-grid">
+
+<!-- LEFT -->
+
+<div class="card">
+
+<h2>
+Patient Registration
+</h2>
+
+<div class="form-grid">
+
+<div class="field">
+
+<label class="field-lbl">
+NAME
+</label>
+
+<input type="text"
+id="f-name"/>
+
+</div>
+
+<div class="field">
+
+<label class="field-lbl">
+AGE
+</label>
+
+<input type="number"
+id="f-age"/>
+
+</div>
+
+<div class="field">
+
+<label class="field-lbl">
+GENDER
+</label>
+
+<select id="f-gender">
+
+<option>Male</option>
+<option>Female</option>
+<option>Other</option>
+
+</select>
+
+</div>
+
+<div class="field">
+
+<label class="field-lbl">
+CONTACT
+</label>
+
+<input type="text"
+id="f-contact"/>
+
+</div>
+
+<div class="field">
+
+<label class="field-lbl">
+HEIGHT
+</label>
+
+<input type="text"
+id="f-height"/>
+
+</div>
+
+<div class="field">
+
+<label class="field-lbl">
+WEIGHT
+</label>
+
+<input type="text"
+id="f-weight"/>
+
+</div>
+
+<div class="field">
+
+<label class="field-lbl">
+BLOOD PRESSURE
+</label>
+
+<input type="text"
+id="f-bp"/>
+
+</div>
+
+<div class="field">
+
+<label class="field-lbl">
+SUGAR LEVEL
+</label>
+
+<input type="text"
+id="f-sugar"/>
+
+</div>
+
+<div class="field">
+
+<label class="field-lbl">
+EMERGENCY CONTACT
+</label>
+
+<input type="text"
+id="f-emergency"/>
+
+</div>
+
+<div class="field">
+
+<label class="field-lbl">
+ADDRESS
+</label>
+
+<input type="text"
+id="f-address"/>
+
+</div>
+
+<div class="field full">
+
+<label class="field-lbl">
+MEDICAL CONDITIONS
+</label>
+
+<textarea id="f-conditions"></textarea>
+
+</div>
+
+<div class="field full">
+
+<label class="field-lbl">
+RFID TOKEN
+</label>
+
+<input
+type="text"
+id="f-rfid"
+readonly
+placeholder="Scan RFID Card"/>
+
+</div>
+
+</div>
+
+<button class="btn-register"
+onclick="registerPatient()">
+
+Register Patient
+
+</button>
+
+</div>
+
+<!-- RIGHT -->
+
+<div class="card">
+
+<h2>
+Patient Queue
+</h2>
+
+<div id="queue-list">
+
+No patients
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const API =
+"http://192.168.29.15:3000";
+
+// ========================================
+// RFID FETCH
+// ========================================
+
+async function fetchRFID(){
+
+  try{
+
+    const r = await fetch(
+      `${API}/api/latest-rfid`
+    );
+
+    const data = await r.json();
+
+    if(data.rfid_uid){
+
+      document.getElementById(
+        "f-rfid"
+      ).value = data.rfid_uid;
+
+    }
+
+  }
+
+  catch(e){
+
+    console.log(e);
+
+  }
+
+}
+
+setInterval(fetchRFID,2000);
+
+// ========================================
+// REGISTER
+// ========================================
+
+async function registerPatient(){
+
+  const payload = {
+
+    name:
+    document.getElementById(
+      "f-name"
+    ).value,
+
+    age:
+    document.getElementById(
+      "f-age"
+    ).value,
+
+    gender:
+    document.getElementById(
+      "f-gender"
+    ).value,
+
+    contact:
+    document.getElementById(
+      "f-contact"
+    ).value,
+
+    height:
+    document.getElementById(
+      "f-height"
+    ).value,
+
+    weight:
+    document.getElementById(
+      "f-weight"
+    ).value,
+
+    blood_pressure:
+    document.getElementById(
+      "f-bp"
+    ).value,
+
+    diabetes_level:
+    document.getElementById(
+      "f-sugar"
+    ).value,
+
+    emergency_contact:
+    document.getElementById(
+      "f-emergency"
+    ).value,
+
+    address:
+    document.getElementById(
+      "f-address"
+    ).value,
+
+    medical_conditions:
+    document.getElementById(
+      "f-conditions"
+    ).value,
+
+    rfid_uid:
+    document.getElementById(
+      "f-rfid"
+    ).value
+
+  };
+
+  await fetch(
+    `${API}/api/patients`,
+    {
+
+      method:"POST",
+
+      headers:{
+        "Content-Type":"application/json"
+      },
+
+      body:JSON.stringify(payload)
+
+    }
+  );
+
+  alert("Patient Registered");
+
+  document.querySelectorAll(
+    "input, textarea"
+  ).forEach(el=>{
+
+    if(el.id!=="f-rfid"){
+
+      el.value="";
+
+    }
+
+  });
+
+  loadQueue();
+
+}
+
+// ========================================
+// QUEUE
+// ========================================
+
+async function loadQueue(){
+
+  const r = await fetch(
+    `${API}/api/queue`
+  );
+
+  const queue = await r.json();
+
+  document.getElementById(
+    "queue-list"
+  ).innerHTML =
+
+  queue.map(p => `
+
+    <div class="queue-item">
+
+      <div class="queue-num">
+      ${p.queue_number}
+      </div>
+
+      <div class="queue-info">
+
+        <div class="queue-name">
+        ${p.name}
+        </div>
+
+      </div>
+
+    </div>
+
+  `).join("");
+
+}
+
+loadQueue();
+
+setInterval(loadQueue,3000);
+
+</script>
+
+</body>
+
+</html>
